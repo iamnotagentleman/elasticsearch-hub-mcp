@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO="https://github.com/iamnotagentleman/elasticsearch-hub-mcp.git"
 INSTALL_DIR="${ES_HUB_DIR:-$HOME/.elasticsearch-hub-mcp}"
+UV_TLS=""
 
 echo "==> Elasticsearch Hub MCP — Installer"
 echo ""
@@ -24,10 +25,16 @@ fi
 
 echo "==> uv $(uv --version)"
 
+# Detect if --native-tls is needed (corporate proxy / TLS inspection)
+if ! uv pip --version &>/dev/null 2>&1; then
+  UV_TLS="--native-tls"
+  echo "==> Using --native-tls (custom certificate detected)"
+fi
+
 # 2. Install Python 3.13 if missing
 if ! uv python find 3.13 &>/dev/null; then
   echo "==> Installing Python 3.13 via uv..."
-  uv python install 3.13
+  uv python install $UV_TLS 3.13
 fi
 
 echo "==> Python $(uv python find 3.13)"
@@ -44,7 +51,7 @@ fi
 # 4. Install dependencies
 echo "==> Installing dependencies..."
 cd "$INSTALL_DIR"
-uv sync
+uv sync $UV_TLS
 
 # 5. Create config if missing
 if [ ! -f "$INSTALL_DIR/config.json" ]; then
