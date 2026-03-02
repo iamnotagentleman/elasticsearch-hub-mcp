@@ -15,11 +15,21 @@ Unlike existing ES MCP servers that only support a single instance with predefin
 
 ## Quick Start
 
-### Install
+One command — installs uv (if missing), clones the repo, and sets up dependencies:
 
 ```bash
-uv sync
+curl -LsSf https://raw.githubusercontent.com/iamnotagentleman/elasticsearch-hub-mcp/main/install.sh | sh
 ```
+
+That's it. No Python or uv install needed beforehand. The script prints the exact commands to add to your MCP client when done.
+
+To install to a custom directory:
+
+```bash
+ES_HUB_DIR=/opt/elasticsearch-hub-mcp curl -LsSf https://raw.githubusercontent.com/iamnotagentleman/elasticsearch-hub-mcp/main/install.sh | sh
+```
+
+Default install path: `~/.elasticsearch-hub-mcp`
 
 ### Configure
 
@@ -56,6 +66,17 @@ cp config.example.json config.json
 ```
 
 Config path is resolved in order: `ES_MCP_CONFIG` env var > `./config.json`.
+
+**Or let Claude generate it for you** — paste this prompt into Claude Code or Claude Desktop:
+
+> I need a config.json for Elasticsearch Hub MCP. I have these clusters:
+>
+> 1. **name:** prod, **url:** https://prod-es.example.com:9200, **auth:** basic (use ${ES_PROD_USER}/${ES_PROD_PASS}), **query_rule:** ONLY_READ_OPERATIONS, **indices:** app-logs-*, metrics-*, **ssl:** verify_certs true
+> 2. **name:** dev, **url:** http://localhost:9200, **auth:** api_key (use ${ES_DEV_KEY}), **query_rule:** ALL_ACCESS, **indices:** dev-*
+>
+> Write it to config.json
+
+Replace the cluster details with your own. Claude will produce a valid `config.json` and save it.
 
 ### Config fields
 
