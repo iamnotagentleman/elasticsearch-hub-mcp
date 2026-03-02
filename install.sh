@@ -1,20 +1,21 @@
-#!/usr/bin/env bash
-set -uo pipefail
+#!/bin/sh
+# Elasticsearch Hub MCP — Installer
+# Works when piped: curl ... | sh
 
 REPO="https://github.com/iamnotagentleman/elasticsearch-hub-mcp.git"
 INSTALL_DIR="${ES_HUB_DIR:-$HOME/.elasticsearch-hub-mcp}"
+
 echo "==> Elasticsearch Hub MCP — Installer"
 echo ""
 
 # 1. Install uv if missing
-if ! command -v uv &>/dev/null; then
+if ! command -v uv >/dev/null 2>&1; then
   echo "==> Installing uv..."
   curl -LsSf https://astral.sh/uv/install.sh | sh
 
-  # Source uv into current shell
   export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 
-  if ! command -v uv &>/dev/null; then
+  if ! command -v uv >/dev/null 2>&1; then
     echo "ERROR: uv installed but not found in PATH."
     echo "Restart your terminal and run this script again."
     exit 1
@@ -24,12 +25,14 @@ fi
 echo "==> uv $(uv --version)"
 
 # 2. Install Python 3.13 if missing
-if ! uv python find 3.13 &>/dev/null; then
+if ! uv python find 3.13 >/dev/null 2>&1; then
   echo "==> Installing Python 3.13 via uv..."
-  uv python install 3.13 2>/dev/null
-  if [ $? -ne 0 ]; then
+  if ! uv python install 3.13 2>&1; then
     echo "==> Retrying with --native-tls..."
-    uv python install --native-tls 3.13 || { echo "ERROR: Python install failed."; exit 1; }
+    if ! uv python install --native-tls 3.13; then
+      echo "ERROR: Python install failed."
+      exit 1
+    fi
   fi
 fi
 
@@ -46,11 +49,13 @@ fi
 
 # 4. Install dependencies
 echo "==> Installing dependencies..."
-cd "$INSTALL_DIR"
-uv sync 2>/dev/null
-if [ $? -ne 0 ]; then
+cd "$INSTALL_DIR" || exit 1
+if ! uv sync 2>&1; then
   echo "==> Retrying with --native-tls..."
-  uv sync --native-tls || { echo "ERROR: uv sync failed."; exit 1; }
+  if ! uv sync --native-tls; then
+    echo "ERROR: uv sync failed."
+    exit 1
+  fi
 fi
 
 # 5. Create config if missing
