@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 REPO="https://github.com/iamnotagentleman/elasticsearch-hub-mcp.git"
 INSTALL_DIR="${ES_HUB_DIR:-$HOME/.elasticsearch-hub-mcp}"
@@ -26,9 +26,10 @@ echo "==> uv $(uv --version)"
 # 2. Install Python 3.13 if missing
 if ! uv python find 3.13 &>/dev/null; then
   echo "==> Installing Python 3.13 via uv..."
-  if ! uv python install 3.13; then
+  uv python install 3.13 2>/dev/null
+  if [ $? -ne 0 ]; then
     echo "==> Retrying with --native-tls..."
-    uv python install --native-tls 3.13
+    uv python install --native-tls 3.13 || { echo "ERROR: Python install failed."; exit 1; }
   fi
 fi
 
@@ -46,9 +47,10 @@ fi
 # 4. Install dependencies
 echo "==> Installing dependencies..."
 cd "$INSTALL_DIR"
-if ! uv sync; then
+uv sync 2>/dev/null
+if [ $? -ne 0 ]; then
   echo "==> Retrying with --native-tls..."
-  uv sync --native-tls
+  uv sync --native-tls || { echo "ERROR: uv sync failed."; exit 1; }
 fi
 
 # 5. Create config if missing
