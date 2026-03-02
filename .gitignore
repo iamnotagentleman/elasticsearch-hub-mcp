@@ -21,7 +21,6 @@ venv/
 config.json
 memories/
 .tmp/
-docs.md
 
 # OS
 .DS_Store
