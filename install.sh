@@ -26,7 +26,10 @@ echo "==> uv $(uv --version)"
 # 2. Install Python 3.13 if missing
 if ! uv python find 3.13 &>/dev/null; then
   echo "==> Installing Python 3.13 via uv..."
-  uv python install 3.13 || uv python install --native-tls 3.13
+  if ! uv python install 3.13; then
+    echo "==> Retrying with --native-tls..."
+    uv python install --native-tls 3.13
+  fi
 fi
 
 echo "==> Python $(uv python find 3.13)"
@@ -43,7 +46,10 @@ fi
 # 4. Install dependencies
 echo "==> Installing dependencies..."
 cd "$INSTALL_DIR"
-uv sync || uv sync --native-tls
+if ! uv sync; then
+  echo "==> Retrying with --native-tls..."
+  uv sync --native-tls
+fi
 
 # 5. Create config if missing
 if [ ! -f "$INSTALL_DIR/config.json" ]; then
