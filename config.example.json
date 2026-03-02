@@ -1,0 +1,24 @@
+[
+  {
+    "name": "primary",
+    "url": "https://es-primary.example.com:9200",
+    "query_rule": "ONLY_READ_OPERATIONS",
+    "index_patterns": ["risk_transaction_log*", "app-*"],
+    "credentials": {
+      "type": "basic",
+      "username": "${ES_USER}",
+      "password": "${ES_PASS}"
+    },
+    "ssl": { "verify_certs": true, "ca_certs": "/path/to/ca.pem" },
+    "default_timeout": 30
+  },
+  {
+    "name": "moria",
+    "url": "https://moria-es.internal:9200",
+    "query_rule": "ALL_ACCESS",
+    "index_patterns": ["app-logs-*", "infra-*"],
+    "credentials": { "type": "api_key", "api_key": "${ES_MORIA_KEY}" },
+    "ssl": { "verify_certs": false },
+    "default_timeout": 15
+  }
+]
