@@ -15,21 +15,13 @@ Unlike existing ES MCP servers that only support a single instance with predefin
 
 ## Quick Start
 
-One command — installs uv (if missing), clones the repo, and sets up dependencies:
+No Python or uv needed — one command installs everything:
 
 ```bash
-curl -LsSf https://raw.githubusercontent.com/iamnotagentleman/elasticsearch-hub-mcp/main/install.sh | sh
+curl -LsSf https://raw.githubusercontent.com/iamnotagentleman/elasticsearch-hub-mcp/refs/heads/master/install.sh | sh
 ```
 
-That's it. No Python or uv install needed beforehand. The script prints the exact commands to add to your MCP client when done.
-
-To install to a custom directory:
-
-```bash
-ES_HUB_DIR=/opt/elasticsearch-hub-mcp curl -LsSf https://raw.githubusercontent.com/iamnotagentleman/elasticsearch-hub-mcp/main/install.sh | sh
-```
-
-Default install path: `~/.elasticsearch-hub-mcp`
+The script installs uv and Python 3.13 if missing, sets up dependencies, and prints the exact commands to add to your MCP client.
 
 ### Configure
 
