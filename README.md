@@ -20,7 +20,6 @@ No Python or uv needed — one command installs everything:
 ```bash
 curl -LsSf https://raw.githubusercontent.com/iamnotagentleman/elasticsearch-hub-mcp/refs/heads/master/install.sh | sh
 ```
-
 The script installs uv and Python 3.13 if missing, sets up dependencies, and prints the exact commands to add to your MCP client.
 
 ### Configure
@@ -91,7 +90,7 @@ Add to your `claude_desktop_config.json` (macOS: `~/Library/Application Support/
   "mcpServers": {
     "elasticsearch": {
       "command": "uv",
-      "args": ["run", "--directory", "/path/to/better-elasticsearch-mcp", "better-elasticsearch-mcp"],
+      "args": ["run", "--directory", "/path/to/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
       "env": {
         "ES_PROD_USER": "elastic",
         "ES_PROD_PASS": "your-password",
@@ -109,7 +108,7 @@ Restart Claude Desktop after saving.
 Run this command in your terminal:
 
 ```bash
-claude mcp add elasticsearch -- uv run --directory /path/to/better-elasticsearch-mcp better-elasticsearch-mcp
+claude mcp add elasticsearch -- uv run --directory /path/to/elasticsearch-hub-mcp elasticsearch-hub-mcp
 ```
 
 Or manually add to your `.claude/settings.json` (project-level) or `~/.claude/settings.json` (global):
@@ -119,7 +118,7 @@ Or manually add to your `.claude/settings.json` (project-level) or `~/.claude/se
   "mcpServers": {
     "elasticsearch": {
       "command": "uv",
-      "args": ["run", "--directory", "/path/to/better-elasticsearch-mcp", "better-elasticsearch-mcp"],
+      "args": ["run", "--directory", "/path/to/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
       "env": {
         "ES_PROD_USER": "elastic",
         "ES_PROD_PASS": "your-password"
@@ -140,7 +139,7 @@ Open Cursor Settings (`Cmd+,`) > search for **MCP** > click **Add new MCP server
   "mcpServers": {
     "elasticsearch": {
       "command": "uv",
-      "args": ["run", "--directory", "/path/to/better-elasticsearch-mcp", "better-elasticsearch-mcp"],
+      "args": ["run", "--directory", "/path/to/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
       "env": {
         "ES_PROD_USER": "elastic",
         "ES_PROD_PASS": "your-password"
