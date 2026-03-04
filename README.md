@@ -4,6 +4,21 @@ MCP server for managing **multiple Elasticsearch instances** with raw Dev Tools-
 
 Unlike existing ES MCP servers that only support a single instance with predefined tool shapes, this gives the LLM raw Elasticsearch power with persistent learning across sessions.
 
+## Why this over official MCP?
+
+Elastic’s official [@elastic/mcp-server-elasticsearch](https://github.com/elastic/mcp-server-elasticsearch) exposes four fixed tools (`list_indices`, `get_mappings`, `search`, `get_shards`) and connects to a single cluster. That’s fine for basic exploration, but it limits what you can do.
+
+| | Official MCP | This server |
+|---|-------------|-------------|
+| **Instances** | One cluster per config | Multiple clusters, each with its own credentials and rules |
+| **Query model** | Predefined tools only | Raw Dev Tools–style: any method, path, body |
+| **Memory** | None | Per-instance memory — learns mappings, patterns, gotchas across sessions |
+| **Safety** | No built-in write protection | `ONLY_READ_OPERATIONS` blocks writes on prod/read-only instances |
+| **Flexibility** | Search, mappings, shards | Full API: `_cat/*`, `_cluster/*`, `_count`, `_mget`, `_msearch`, ingest pipelines, etc. |
+| **Large results** | Inline only | Results over 10 KB written to temp files to avoid context overflow |
+
+Use the official MCP when you want a simple, opinionated interface to one cluster. Use this when you need multi-cluster access, raw Elasticsearch power, and an LLM that improves over time.
+
 ## Features
 
 - **Multiple instances** — configure as many ES clusters as you need, each with its own credentials and access rules
