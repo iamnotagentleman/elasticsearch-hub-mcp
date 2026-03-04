@@ -142,6 +142,7 @@ async def run_query(
     method: str,
     path: str,
     body: dict[str, Any] | None = None,
+    description: str | None = None,
 ) -> str:
     """Execute a raw Elasticsearch query, like Kibana Dev Tools console.
 
@@ -150,6 +151,7 @@ async def run_query(
         method: HTTP method (GET, POST, PUT, DELETE).
         path: ES API path (e.g. /_cat/indices?v, /my-index/_search).
         body: Optional JSON body (query DSL, mapping, etc.).
+        description: Optional human-readable explanation of what this query does.
     """
     app: AppContext = ctx.request_context.lifespan_context
     cm = app.connection_manager
