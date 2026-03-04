@@ -44,7 +44,7 @@ You are connected to the Better Elasticsearch MCP server, which manages multiple
 
 ### Large Results
 - If a result exceeds 10 KB, it's saved to a temp file. The response tells you the file path.
-- Use command line tools (head, grep, jq) on the file to extract what you need without filling context.
+- You can read the file directly, use Python, or any other method to extract the relevant data.
 - Always use `size` parameter in searches to limit results. Start small (10-20), increase if needed.
 
 ### Index Patterns

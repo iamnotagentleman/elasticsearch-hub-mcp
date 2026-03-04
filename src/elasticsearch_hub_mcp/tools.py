@@ -76,8 +76,8 @@ def _truncate_result(instance_name: str, result: str) -> str:
     filepath.write_text(result)
 
     return (
-        f"Result exceeded 10 KB. "
-        f"Full output at {filepath}, use command line tools to prevent context fill"
+        f"Result exceeded 10 KB. Full output saved at: {filepath}\n"
+        f"You can read the file directly or use any method you prefer to extract the relevant data."
     )
 
 
