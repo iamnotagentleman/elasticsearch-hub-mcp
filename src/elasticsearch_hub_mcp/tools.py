@@ -10,9 +10,9 @@ import aiohttp
 from fastmcp import Context
 
 from .config import QueryRule
+from .docs import append_docs as _append_docs
 from .docs import get_docs as _get_docs
 from .docs import write_docs as _write_docs
-from .memory import MemoryObject
 from .memory import get_memories as _get_memories
 from .memory import write_memory as _write_memory
 from .server import AppContext, mcp
@@ -89,8 +89,14 @@ def get_docs() -> str:
 
 @mcp.tool()
 def write_docs(content: str) -> str:
-    """Write or append to the global documentation. Use for setup-level knowledge that applies across instances."""
+    """Overwrite the global documentation. Use for setup-level knowledge that applies across instances."""
     return _write_docs(content)
+
+
+@mcp.tool()
+def append_docs(content: str) -> str:
+    """Append to the global documentation. Use to add new sections without losing existing content."""
+    return _append_docs(content)
 
 
 @mcp.tool()
@@ -122,17 +128,14 @@ def get_memory(instance_name: str) -> str:
 
 
 @mcp.tool()
-def write_memory(instance_name: str, index: str | None, context: str, type: str) -> str:
-    """Save a lesson or info about an Elasticsearch instance.
+def write_memory(instance_name: str, content: str) -> str:
+    """Save a memory about an Elasticsearch instance. Plain text — write whatever is useful.
 
     Args:
         instance_name: The ES instance this memory is about.
-        index: The specific index this memory relates to (null if general).
-        context: The actual memory content — what you learned or discovered.
-        type: Either "info" (factual) or "lessons_learned" (gotcha/tip).
+        content: The memory content — what you learned or discovered.
     """
-    memory = MemoryObject(index=index, context=context, type=type)  # type: ignore[arg-type]
-    return _write_memory(instance_name, memory)
+    return _write_memory(instance_name, content)
 
 
 @mcp.tool()
