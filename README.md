@@ -30,6 +30,18 @@ Use the official MCP when you want a simple, opinionated interface to one cluste
 
 ## Quick Start
 
+### Option 1: Run directly with `uvx` (no clone needed)
+
+If you have [uv](https://docs.astral.sh/uv/) installed, you can run the server directly from GitHub — no cloning required:
+
+```bash
+uvx --from git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp elasticsearch-hub-mcp
+```
+
+This installs and runs the server in one command. Use this in your MCP client configs too (see [MCP client setup](#add-to-claude-desktop) below).
+
+### Option 2: Install script
+
 No Python or uv needed — one command installs everything:
 
 ```bash
@@ -100,6 +112,26 @@ Replace the cluster details with your own. Claude will produce a valid `config.j
 
 Add to your `claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
 
+**With `uvx` (no clone needed):**
+
+```json
+{
+  "mcpServers": {
+    "elasticsearch": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
+      "env": {
+        "ES_PROD_USER": "elastic",
+        "ES_PROD_PASS": "your-password",
+        "ES_DEV_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+**With local clone:**
+
 ```json
 {
   "mcpServers": {
@@ -120,7 +152,13 @@ Restart Claude Desktop after saving.
 
 ### Add to Claude Code
 
-Run this command in your terminal:
+**With `uvx` (no clone needed):**
+
+```bash
+claude mcp add elasticsearch -- uvx --from git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp elasticsearch-hub-mcp
+```
+
+**With local clone:**
 
 ```bash
 claude mcp add elasticsearch -- uv run --directory /path/to/elasticsearch-hub-mcp elasticsearch-hub-mcp
@@ -132,8 +170,8 @@ Or manually add to your `.claude/settings.json` (project-level) or `~/.claude/se
 {
   "mcpServers": {
     "elasticsearch": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
       "env": {
         "ES_PROD_USER": "elastic",
         "ES_PROD_PASS": "your-password"
@@ -148,6 +186,25 @@ If your credentials are already in `config.json` (not using `${ENV_VAR}` substit
 ### Add to Cursor
 
 Open Cursor Settings (`Cmd+,`) > search for **MCP** > click **Add new MCP server**, or manually edit `~/.cursor/mcp.json`:
+
+**With `uvx` (no clone needed):**
+
+```json
+{
+  "mcpServers": {
+    "elasticsearch": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
+      "env": {
+        "ES_PROD_USER": "elastic",
+        "ES_PROD_PASS": "your-password"
+      }
+    }
+  }
+}
+```
+
+**With local clone:**
 
 ```json
 {
