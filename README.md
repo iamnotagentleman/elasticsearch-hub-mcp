@@ -119,16 +119,13 @@ Add to your `claude_desktop_config.json` (macOS: `~/Library/Application Support/
   "mcpServers": {
     "elasticsearch": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
-      "env": {
-        "ES_PROD_USER": "elastic",
-        "ES_PROD_PASS": "your-password",
-        "ES_DEV_KEY": "your-api-key"
-      }
+      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"]
     }
   }
 }
 ```
+
+Set your credentials directly in `config.json` (see [Configure](#configure) above).
 
 **With local clone:**
 
@@ -171,17 +168,13 @@ Or manually add to your `.claude/settings.json` (project-level) or `~/.claude/se
   "mcpServers": {
     "elasticsearch": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
-      "env": {
-        "ES_PROD_USER": "elastic",
-        "ES_PROD_PASS": "your-password"
-      }
+      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"]
     }
   }
 }
 ```
 
-If your credentials are already in `config.json` (not using `${ENV_VAR}` substitution), you can omit the `env` block.
+Set your credentials directly in `config.json` (see [Configure](#configure) above).
 
 ### Add to Cursor
 
@@ -194,15 +187,13 @@ Open Cursor Settings (`Cmd+,`) > search for **MCP** > click **Add new MCP server
   "mcpServers": {
     "elasticsearch": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
-      "env": {
-        "ES_PROD_USER": "elastic",
-        "ES_PROD_PASS": "your-password"
-      }
+      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"]
     }
   }
 }
 ```
+
+Set your credentials directly in `config.json` (see [Configure](#configure) above).
 
 **With local clone:**
 
