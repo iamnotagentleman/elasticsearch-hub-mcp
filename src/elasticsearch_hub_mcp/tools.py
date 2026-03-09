@@ -75,8 +75,14 @@ def _truncate_result(instance_name: str, result: str) -> str:
     filepath = TMP_DIR / filename
     filepath.write_text(result)
 
+    size_bytes = len(result.encode("utf-8"))
+    if size_bytes >= 1024 * 1024:
+        human_size = f"~{size_bytes / (1024 * 1024):.1f} MB"
+    else:
+        human_size = f"~{size_bytes / 1024:.1f} KB"
+
     return (
-        f"Result exceeded 10 KB. Full output saved at: {filepath}\n"
+        f"Result exceeded 10 KB ({human_size}). Full output saved at: {filepath}\n"
         f"You can read the file directly or use any method you prefer to extract the relevant data."
     )
 

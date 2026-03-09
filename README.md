@@ -85,6 +85,12 @@ cp config.example.json config.json
 
 Config path is resolved in order: `ES_MCP_CONFIG` env var > `./config.json`.
 
+> **Note:** When using `uvx`, `./config.json` resolves relative to your current working directory. Set `ES_MCP_CONFIG` to an absolute path so the server always finds your config regardless of where it runs from:
+>
+> ```bash
+> export ES_MCP_CONFIG=~/.elasticsearch-hub-mcp/config.json
+> ```
+
 **Or let Claude generate it for you** — paste this prompt into Claude Code or Claude Desktop:
 
 > I need a config.json for Elasticsearch Hub MCP. I have these clusters:
@@ -119,13 +125,14 @@ Add to your `claude_desktop_config.json` (macOS: `~/Library/Application Support/
   "mcpServers": {
     "elasticsearch": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"]
+      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
+      "env": {
+        "ES_MCP_CONFIG": "/absolute/path/to/config.json"
+      }
     }
   }
 }
 ```
-
-Set your credentials directly in `config.json` (see [Configure](#configure) above).
 
 **With local clone:**
 
@@ -168,13 +175,14 @@ Or manually add to your `.claude/settings.json` (project-level) or `~/.claude/se
   "mcpServers": {
     "elasticsearch": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"]
+      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
+      "env": {
+        "ES_MCP_CONFIG": "/absolute/path/to/config.json"
+      }
     }
   }
 }
 ```
-
-Set your credentials directly in `config.json` (see [Configure](#configure) above).
 
 ### Add to Cursor
 
@@ -187,13 +195,14 @@ Open Cursor Settings (`Cmd+,`) > search for **MCP** > click **Add new MCP server
   "mcpServers": {
     "elasticsearch": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"]
+      "args": ["--from", "git+https://github.com/iamnotagentleman/elasticsearch-hub-mcp", "elasticsearch-hub-mcp"],
+      "env": {
+        "ES_MCP_CONFIG": "/absolute/path/to/config.json"
+      }
     }
   }
 }
 ```
-
-Set your credentials directly in `config.json` (see [Configure](#configure) above).
 
 **With local clone:**
 
