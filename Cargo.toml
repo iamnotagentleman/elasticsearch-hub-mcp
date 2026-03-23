@@ -1,0 +1,33 @@
+[package]
+name = "elasticsearch-hub-mcp"
+version = "0.1.0"
+edition = "2024"
+description = "MCP server for managing multiple Elasticsearch instances with raw Dev Tools-style query execution, per-instance memory, and shared docs"
+license = "MIT"
+repository = "https://github.com/iamnotagentleman/elasticsearch-hub-mcp"
+homepage = "https://github.com/iamnotagentleman/elasticsearch-hub-mcp"
+keywords = ["elasticsearch", "mcp", "llm", "devtools"]
+categories = ["command-line-utilities", "database"]
+readme = "README.md"
+exclude = ["e2e_test.py", "e2e_test.sh", "test-config.json", ".tmp/", "memories/"]
+
+[dependencies]
+rmcp = { version = "1.2.0", features = ["server", "transport-io"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std", "fs"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+schemars = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+reqwest = { version = "0.12", features = ["json", "native-tls"] }
+regex = "1"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[[bin]]
+name = "elasticsearch-hub-mcp"
+path = "src/main.rs"

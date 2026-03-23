@@ -1,0 +1,30 @@
+[
+  {
+    "name": "local-test",
+    "url": "http://localhost:9200",
+    "environment": "TEST",
+    "query_rule": "ALL_ACCESS",
+    "index_patterns": ["test-*"],
+    "credentials": {
+      "type": "basic",
+      "username": "elastic",
+      "password": "test"
+    },
+    "ssl": { "verify_certs": false },
+    "default_timeout": 30
+  },
+  {
+    "name": "local-readonly",
+    "url": "http://localhost:9200",
+    "environment": "TEST",
+    "query_rule": "ONLY_READ_OPERATIONS",
+    "index_patterns": ["test-*"],
+    "credentials": {
+      "type": "basic",
+      "username": "elastic",
+      "password": "test"
+    },
+    "ssl": { "verify_certs": false },
+    "default_timeout": 30
+  }
+]

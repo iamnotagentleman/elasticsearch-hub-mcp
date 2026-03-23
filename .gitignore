@@ -1,15 +1,6 @@
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-dist/
-build/
-.eggs/
-*.egg
-
-# Virtual environments
-.venv/
-venv/
+# Rust
+target/
+Cargo.lock
 
 # IDE
 .idea/
@@ -21,10 +12,12 @@ venv/
 config.json
 memories/
 .tmp/
+docs.md
 
 # OS
 .DS_Store
 Thumbs.db
 
-# uv
-# uv.lock is committed for reproducible builds
+# Test/dev artifacts
+loop.sh
+prompt.md
