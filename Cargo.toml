@@ -9,7 +9,7 @@ homepage = "https://github.com/iamnotagentleman/elasticsearch-hub-mcp"
 keywords = ["elasticsearch", "mcp", "llm", "devtools"]
 categories = ["command-line-utilities", "database"]
 readme = "README.md"
-exclude = ["e2e_test.py", "e2e_test.sh", "test-config.json", ".tmp/", "memories/"]
+exclude = [".tmp/", "memories/"]
 
 [dependencies]
 rmcp = { version = "1.2.0", features = ["server", "transport-io"] }

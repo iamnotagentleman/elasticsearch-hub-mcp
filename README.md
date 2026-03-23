@@ -242,10 +242,6 @@ cargo build
 # Run unit tests (26 tests)
 cargo test
 
-# Run E2E tests (requires Elasticsearch on localhost:9200)
-# See test-config.json for the expected config
-python3 e2e_test.py
-
 # Build release binary
 cargo build --release
 ```
