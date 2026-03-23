@@ -101,8 +101,19 @@ pub fn load_config(path: Option<&Path>) -> Result<Vec<ElasticsearchInstance>> {
     let config_path: PathBuf = match path {
         Some(p) => p.to_path_buf(),
         None => {
-            let env_path = env::var("ES_MCP_CONFIG").ok();
-            PathBuf::from(env_path.as_deref().unwrap_or("./config.json"))
+            if let Ok(env_path) = env::var("ES_MCP_CONFIG") {
+                PathBuf::from(env_path)
+            } else {
+                // Try ./config.json first, then ~/.elasticsearch-hub-mcp/config.json
+                let local = PathBuf::from("./config.json");
+                if local.exists() {
+                    local
+                } else {
+                    dirs::home_dir()
+                        .map(|h| h.join(".elasticsearch-hub-mcp").join("config.json"))
+                        .unwrap_or(local)
+                }
+            }
         }
     };
 

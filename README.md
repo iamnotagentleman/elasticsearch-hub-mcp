@@ -42,18 +42,19 @@ This installs the `elasticsearch-hub-mcp` binary to `~/.cargo/bin/`.
 
 ```bash
 git clone https://github.com/iamnotagentleman/elasticsearch-hub-mcp.git
-cd elasticsearch-hub-mcp/rust-server
+cd elasticsearch-hub-mcp
 cargo build --release
 ```
 
-The binary is at `rust-server/target/release/elasticsearch-hub-mcp`.
+The binary is at `target/release/elasticsearch-hub-mcp`.
 
 ### Configure
 
-Copy the example config and fill in your instances:
+Create `~/.elasticsearch-hub-mcp/config.json` with your instances:
 
 ```bash
-cp config.example.json config.json
+mkdir -p ~/.elasticsearch-hub-mcp
+cp config.example.json ~/.elasticsearch-hub-mcp/config.json
 ```
 
 ```json
@@ -82,13 +83,37 @@ cp config.example.json config.json
 ]
 ```
 
-Config path is resolved in order: `ES_MCP_CONFIG` env var > `./config.json`.
+### File locations
 
-> **Tip:** Set `ES_MCP_CONFIG` to an absolute path so the server always finds your config regardless of where it runs from:
->
-> ```bash
-> export ES_MCP_CONFIG=~/.elasticsearch-hub-mcp/config.json
-> ```
+By default, the server stores everything in `~/.elasticsearch-hub-mcp/`:
+
+```
+~/.elasticsearch-hub-mcp/
+  config.json              # your instance configuration
+  docs.md                  # global documentation (written by the LLM)
+  memories/                # per-instance memory files
+    memory_<instance>.md
+  .tmp/                    # large result files
+```
+
+**Config resolution order:**
+
+| Priority | Source |
+|----------|--------|
+| 1st | `ES_MCP_CONFIG` env var (absolute path) |
+| 2nd | `./config.json` (current working directory) |
+| 3rd | `~/.elasticsearch-hub-mcp/config.json` |
+
+**Data directory resolution order:**
+
+| Priority | Source |
+|----------|--------|
+| 1st | `ES_MCP_PROJECT_ROOT` env var |
+| 2nd | `~/.elasticsearch-hub-mcp/` |
+
+The data directory is where `memories/`, `docs.md`, and `.tmp/` are stored. Directories are created automatically on first run.
+
+> **Tip:** For most users, no env vars are needed. Just put your `config.json` in `~/.elasticsearch-hub-mcp/` and everything works.
 
 **Or let Claude generate it for you** — paste this prompt into Claude Code or Claude Desktop:
 
@@ -121,10 +146,7 @@ Add to your `claude_desktop_config.json` (macOS: `~/Library/Application Support/
 {
   "mcpServers": {
     "elasticsearch": {
-      "command": "elasticsearch-hub-mcp",
-      "env": {
-        "ES_MCP_CONFIG": "/absolute/path/to/config.json"
-      }
+      "command": "elasticsearch-hub-mcp"
     }
   }
 }
@@ -140,21 +162,6 @@ Restart Claude Desktop after saving.
 claude mcp add elasticsearch -- elasticsearch-hub-mcp
 ```
 
-Or manually add to your `.claude/settings.json` (project-level) or `~/.claude/settings.json` (global):
-
-```json
-{
-  "mcpServers": {
-    "elasticsearch": {
-      "command": "elasticsearch-hub-mcp",
-      "env": {
-        "ES_MCP_CONFIG": "/absolute/path/to/config.json"
-      }
-    }
-  }
-}
-```
-
 ### Add to Cursor
 
 Open Cursor Settings (`Cmd+,`) > search for **MCP** > click **Add new MCP server**, or manually edit `~/.cursor/mcp.json`:
@@ -163,16 +170,15 @@ Open Cursor Settings (`Cmd+,`) > search for **MCP** > click **Add new MCP server
 {
   "mcpServers": {
     "elasticsearch": {
-      "command": "elasticsearch-hub-mcp",
-      "env": {
-        "ES_MCP_CONFIG": "/absolute/path/to/config.json"
-      }
+      "command": "elasticsearch-hub-mcp"
     }
   }
 }
 ```
 
 Restart Cursor after saving. The tools will appear in Cursor's Agent mode.
+
+> **Note:** No `env` block needed if your config is at `~/.elasticsearch-hub-mcp/config.json`. Set `ES_MCP_CONFIG` only if your config lives elsewhere.
 
 ## Tools
 
@@ -230,8 +236,6 @@ The LLM automatically builds knowledge about each ES instance over time:
 ## Development
 
 ```bash
-cd rust-server
-
 # Build
 cargo build
 
@@ -239,7 +243,7 @@ cargo build
 cargo test
 
 # Run E2E tests (requires Elasticsearch on localhost:9200)
-# See rust-server/test-config.json for the expected config
+# See test-config.json for the expected config
 python3 e2e_test.py
 
 # Build release binary

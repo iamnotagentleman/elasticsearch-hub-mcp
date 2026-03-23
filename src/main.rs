@@ -29,10 +29,14 @@ async fn main() -> Result<()> {
 
     tracing::info!("Starting Elasticsearch Hub MCP server (Rust)");
 
-    // Determine project root: ES_MCP_PROJECT_ROOT or current directory
+    // Determine project root: ES_MCP_PROJECT_ROOT > ~/.elasticsearch-hub-mcp
     let project_root = std::env::var("ES_MCP_PROJECT_ROOT")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+        .unwrap_or_else(|_| {
+            dirs::home_dir()
+                .map(|h| h.join(".elasticsearch-hub-mcp"))
+                .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
+        });
 
     // Create required directories
     std::fs::create_dir_all(project_root.join("memories")).ok();
