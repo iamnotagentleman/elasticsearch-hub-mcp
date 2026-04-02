@@ -22,6 +22,11 @@ const SYSTEM_INSTRUCTIONS: &str = r#"You are connected to the Better Elasticsear
 2. Call `list_instances()` — see available ES instances, their query rules, and index patterns
 3. Call `get_memory(instance_name)` for the relevant instance — read past lessons and context
 
+## First-Time Setup
+- If docs are empty and memories are missing, call `init()` to run guided discovery across all instances.
+- `init()` backs up existing docs/memories automatically, then returns a discovery framework for you to follow.
+- You can call `init()` anytime to re-discover and refresh the knowledge base.
+
 ## Core Principles
 
 ### Memory System
@@ -69,12 +74,135 @@ const SYSTEM_INSTRUCTIONS: &str = r#"You are connected to the Better Elasticsear
 - Docs are for setup-level knowledge: which instance to use for what, cross-instance relationships, general tips.
 "#;
 
+const INIT_PROMPT_ALL: &str = r#"Discover and document all configured Elasticsearch instances. Follow these phases in order.
+
+## Phase 1: Survey the landscape
+
+1. Call `list_instances()` to see all configured instances.
+2. Call `get_docs()` to read existing global documentation.
+3. For each instance, call `get_memory(instance_name)` to check what's already known.
+
+Note which instances need discovery (empty or thin memories) vs ones already well-documented.
+
+## Phase 2: Parallel discovery — launch one sub-agent per instance
+
+For EACH instance, launch a separate sub-agent. Each agent explores one instance independently. This is faster (parallel I/O) and keeps each agent's context clean and focused.
+
+SUB-AGENT TASK TEMPLATE (fill in <INSTANCE_NAME> and <ENV> for each):
+"#;
+
+const INIT_PROMPT_SINGLE: &str = r#"Discover and document a single Elasticsearch instance. Follow these phases in order.
+
+## Phase 1: Survey
+
+1. Call `get_docs()` to read existing global documentation.
+2. Call `get_memory(instance_name)` to check what's already known for this instance.
+
+## Phase 2: Discovery
+
+Explore the target instance directly (no sub-agent needed for a single instance).
+
+DISCOVERY TASK:
+"#;
+
+const INIT_PROMPT_ASK: &str = r#"The user called `init()` without specifying an instance. Ask them what they'd like to initialize.
+
+Present the available instances listed below and ask:
+- "Should I discover and document **all instances**, or a specific one?"
+- List each instance with its name and environment so they can pick.
+- If they pick one, proceed with single-instance discovery.
+- If they pick all, proceed with parallel discovery across everything.
+
+**Available instances:**
+"#;
+
+const INIT_DISCOVERY_TASK: &str = r#"
+> You are exploring Elasticsearch instance `<INSTANCE_NAME>` (environment: `<ENV>`).
+> Your job: understand what this instance is, what data it holds, and document it.
+>
+> Run these queries in order using `run_query`:
+>
+> 1. `GET /_cluster/health` — cluster status, node count, shard health
+> 2. `GET /_cat/indices?v&s=docs.count:desc&format=json` — all indices sorted by size
+> 3. `GET /_cat/aliases?v&format=json` — alias-to-index mappings
+>
+> **Classify the instance** based on index naming patterns:
+>
+> | Signal | Classification |
+> |--------|---------------|
+> | Time-based index names (`app-logs-2026.04.01`, `*-2026.*`, daily/monthly rollover) | **Log aggregator** — services ship logs here |
+> | Stable named indices (`users`, `products`, `orders`) | **Application database** — persistent data store |
+> | `metricbeat-*`, `apm-*`, `metrics-*` | **Metrics/APM store** |
+> | `*-search-*`, `*-autocomplete`, heavy `text` field mappings | **Search engine** — read-heavy, denormalized |
+> | Mix of the above | **Hybrid** — document each usage separately |
+>
+> **Deep dive into key indices.** For each distinct index pattern group, pick the most representative index (latest time-based or largest) and run:
+>
+> - `GET /<index>/_mapping` — field structure
+> - `POST /<index>/_search` with `{"size": 1}` — see a real document
+>
+> Focus on what saves time in future queries:
+> - Which fields are `.keyword` suffixed (aggregatable)?
+> - What date format does `@timestamp` or equivalent use?
+> - Are there enum-like fields (`level`, `status`, `type`)? What values do they have?
+> - Field naming convention: camelCase, snake_case, dot.notation?
+> - Any misleading field names? (e.g., `message` containing structured JSON, `level` with inconsistent casing like "Error" vs "ERROR")
+> - Nested objects or flattened fields?
+>
+> **Write memory.** Call `write_memory(instance_name, content)` with a concise, actionable summary:
+> - Instance classification (log aggregator / app DB / metrics / search / hybrid)
+> - Key indices found and their purpose
+> - Field mapping summary for the most important indices — field names, types, gotchas
+> - Data patterns: date formats, casing inconsistencies, nested structures
+> - Useful query patterns specific to this data shape
+>
+> **Return a short summary** (3-5 lines) back to the parent: classification, key indices, and most important finding.
+"#;
+
+const INIT_PROMPT_DOCS_PHASE: &str = r#"
+## Write global docs
+
+After discovery completes, synthesize `docs.md` by calling `write_docs(content)` with:
+
+- **Instance map** — table of instances: name, environment, classification, what data it holds
+- **Environment pairs** — which instances mirror each other (QA ↔ PROD)
+- **Cross-instance relationships** — same services logging to different environments, shared index patterns
+- **When to use which instance** — clear guidance for common query scenarios
+- **Behavioral rules:**
+  - Always ask which environment before running queries if not specified
+  - After completing queries, check if anything is worth saving to memory
+  - Only write genuinely useful memories, not every query result
+"#;
+
+const INIT_PROMPT_SUMMARY_PHASE: &str = r#"
+## Summary
+
+Report to the user:
+- How many instances were explored
+- Classification of each instance (one line each)
+- Key findings — anything surprising or particularly useful
+- What was written to docs and memories
+- Suggestions for the user (e.g., "checkout-elk has inconsistent log levels — consider standardizing")
+"#;
+
 // -- Parameter structs for tools --
 
+#[derive(Debug, Default, serde::Deserialize, schemars::JsonSchema)]
+pub enum WriteMode {
+    #[default]
+    #[serde(rename = "append")]
+    Append,
+    #[serde(rename = "overwrite")]
+    Overwrite,
+}
+
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
-pub struct ContentParam {
+pub struct WriteDocsParam {
     #[schemars(description = "The content to write")]
     pub content: String,
+    #[schemars(description = "Write mode: 'append' adds to existing content (default), 'overwrite' replaces everything")]
+    #[serde(default)]
+    pub write_mode: WriteMode,
 }
 
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
@@ -89,6 +217,15 @@ pub struct WriteMemoryParam {
     pub instance_name: String,
     #[schemars(description = "The memory content — what you learned or discovered")]
     pub content: String,
+    #[schemars(description = "Write mode: 'append' adds to existing memories (default), 'overwrite' replaces all memories for this instance")]
+    #[serde(default)]
+    pub write_mode: WriteMode,
+}
+
+#[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
+pub struct InitParam {
+    #[schemars(description = "Optional: specific instance to discover. If omitted, the LLM will ask the user whether to init all or pick one.")]
+    pub instance_name: Option<String>,
 }
 
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
@@ -164,6 +301,88 @@ impl ElasticsearchMcpServer {
         )
     }
 
+    fn backups_dir(&self) -> PathBuf {
+        self.project_root.join("backups")
+    }
+
+    /// Back up existing docs.md and memory files before init overwrites them.
+    /// If `instance_name` is Some, only back up that instance's memory. Otherwise back up all.
+    fn backup_existing_files(&self, instance_name: Option<&str>) -> String {
+        let ts = Utc::now().format("%Y%m%d_%H%M%S");
+        let backup_dir = self.backups_dir();
+        std::fs::create_dir_all(&backup_dir).ok();
+
+        let mut backed_up = Vec::new();
+
+        // Backup docs.md (always — docs are global)
+        let docs = self.docs_file();
+        if docs.exists() {
+            if let Ok(content) = std::fs::read_to_string(&docs) {
+                if !content.trim().is_empty() {
+                    let dest = backup_dir.join(format!("docs_{}.md", ts));
+                    if std::fs::copy(&docs, &dest).is_ok() {
+                        backed_up.push(format!(
+                            "- docs.md -> backups/{}",
+                            dest.file_name().unwrap_or_default().to_string_lossy()
+                        ));
+                    }
+                }
+            }
+        }
+
+        // Backup memory files — scoped to instance if specified
+        let memories_dir = self.memories_dir();
+        if memories_dir.exists() {
+            if let Some(name) = instance_name {
+                // Single instance: only back up its memory file(s)
+                for ext in &["md", "json"] {
+                    let path = memories_dir.join(format!("memory_{}.{}", name, ext));
+                    if path.exists() {
+                        let dest = backup_dir.join(format!("memory_{}_{}.{}", name, ts, ext));
+                        if std::fs::copy(&path, &dest).is_ok() {
+                            backed_up.push(format!(
+                                "- memory_{}.{} -> backups/{}",
+                                name,
+                                ext,
+                                dest.file_name().unwrap_or_default().to_string_lossy()
+                            ));
+                        }
+                    }
+                }
+            } else {
+                // All instances: back up every memory file
+                if let Ok(entries) = std::fs::read_dir(&memories_dir) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                        if ext == "md" || ext == "json" {
+                            if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                                let dest = backup_dir.join(format!("{}_{}.{}", stem, ts, ext));
+                                if std::fs::copy(&path, &dest).is_ok() {
+                                    backed_up.push(format!(
+                                        "- {} -> backups/{}",
+                                        path.file_name().unwrap_or_default().to_string_lossy(),
+                                        dest.file_name().unwrap_or_default().to_string_lossy()
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if backed_up.is_empty() {
+            "No existing docs or memories found — clean slate.\n".to_string()
+        } else {
+            format!(
+                "Backed up {} file(s) to backups/ (timestamped). You can safely overwrite docs and memories — originals are preserved.\n{}\n",
+                backed_up.len(),
+                backed_up.join("\n")
+            )
+        }
+    }
+
     fn format_instances(instances: Vec<&ElasticsearchInstance>) -> String {
         let result: Vec<Value> = instances
             .iter()
@@ -189,14 +408,12 @@ impl ElasticsearchMcpServer {
         docs::get_docs(&self.docs_file())
     }
 
-    #[tool(description = "Overwrite the global documentation. Use for setup-level knowledge that applies across instances.")]
-    fn write_docs(&self, Parameters(ContentParam { content }): Parameters<ContentParam>) -> String {
-        docs::write_docs(&self.docs_file(), &content)
-    }
-
-    #[tool(description = "Append to the global documentation. Use to add new sections without losing existing content.")]
-    fn append_docs(&self, Parameters(ContentParam { content }): Parameters<ContentParam>) -> String {
-        docs::append_docs(&self.docs_file(), &content)
+    #[tool(description = "Write global documentation. Use for setup-level knowledge that applies across instances. Defaults to append; use write_mode='overwrite' to replace everything.")]
+    fn write_docs(&self, Parameters(WriteDocsParam { content, write_mode }): Parameters<WriteDocsParam>) -> String {
+        match write_mode {
+            WriteMode::Append => docs::append_docs(&self.docs_file(), &content),
+            WriteMode::Overwrite => docs::write_docs(&self.docs_file(), &content),
+        }
     }
 
     #[tool(description = "List all configured Elasticsearch instances with their query rules and index patterns. Call after get_docs().")]
@@ -213,15 +430,79 @@ impl ElasticsearchMcpServer {
         memory::get_memories(&self.memories_dir(), &instance_name)
     }
 
-    #[tool(description = "Save a memory about an Elasticsearch instance. Plain text — write whatever is useful.")]
+    #[tool(description = "Save a memory about an Elasticsearch instance. Plain text — write whatever is useful. Defaults to append; use write_mode='overwrite' to replace all memories for this instance.")]
     fn write_memory(
         &self,
         Parameters(WriteMemoryParam {
             instance_name,
             content,
+            write_mode,
         }): Parameters<WriteMemoryParam>,
     ) -> String {
-        memory::write_memory(&self.memories_dir(), &instance_name, &content)
+        match write_mode {
+            WriteMode::Append => memory::write_memory(&self.memories_dir(), &instance_name, &content),
+            WriteMode::Overwrite => memory::overwrite_memory(&self.memories_dir(), &instance_name, &content),
+        }
+    }
+
+    #[tool(description = "Discover and document Elasticsearch instances. Backs up existing docs/memories, then returns a guided discovery framework. Pass instance_name to init a specific instance, or omit to choose.")]
+    fn init(
+        &self,
+        Parameters(InitParam { instance_name }): Parameters<InitParam>,
+    ) -> String {
+        let instances = self.connection_manager.list_instances();
+
+        // Validate instance_name if provided
+        if let Some(ref name) = instance_name {
+            if self.connection_manager.get_instance_config(name).is_err() {
+                let available: Vec<String> = instances
+                    .iter()
+                    .map(|i| format!("- {} ({})", i.name, i.environment))
+                    .collect();
+                return format!(
+                    "Unknown instance '{}'. Available instances:\n{}",
+                    name,
+                    available.join("\n")
+                );
+            }
+        }
+
+        let backup_report = self.backup_existing_files(instance_name.as_deref());
+
+        let prompt = match instance_name {
+            Some(ref name) => {
+                let config = self.connection_manager.get_instance_config(name).unwrap();
+                let filled_task = INIT_DISCOVERY_TASK
+                    .replace("<INSTANCE_NAME>", &config.name)
+                    .replace("<ENV>", &config.environment);
+                format!(
+                    "{}\n{}{}\n{}\n{}",
+                    backup_report,
+                    INIT_PROMPT_SINGLE,
+                    filled_task,
+                    INIT_PROMPT_DOCS_PHASE,
+                    INIT_PROMPT_SUMMARY_PHASE
+                )
+            }
+            None => {
+                let instance_list: Vec<String> = instances
+                    .iter()
+                    .map(|i| format!("- **{}** (environment: {}, query_rule: {})", i.name, i.environment, i.query_rule.as_str()))
+                    .collect();
+                format!(
+                    "{}\n{}\n{}\n{}\n{}\n{}\n{}",
+                    backup_report,
+                    INIT_PROMPT_ASK,
+                    instance_list.join("\n"),
+                    INIT_PROMPT_ALL,
+                    INIT_DISCOVERY_TASK,
+                    INIT_PROMPT_DOCS_PHASE,
+                    INIT_PROMPT_SUMMARY_PHASE
+                )
+            }
+        };
+
+        prompt
     }
 
     #[tool(description = "Execute a raw Elasticsearch query, like Kibana Dev Tools console.")]

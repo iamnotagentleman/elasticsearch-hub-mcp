@@ -34,6 +34,16 @@ pub fn get_memories(memories_dir: &Path, instance_name: &str) -> String {
     }
 }
 
+/// Overwrite all memories for an instance.
+pub fn overwrite_memory(memories_dir: &Path, instance_name: &str, content: &str) -> String {
+    fs::create_dir_all(memories_dir).ok();
+    let path = memory_file(memories_dir, instance_name);
+    match fs::write(&path, content) {
+        Ok(_) => format!("Memory overwritten for instance '{}'.", instance_name),
+        Err(e) => format!("Error writing memory file: {}", e),
+    }
+}
+
 /// Append a memory entry to the instance's memory file.
 pub fn write_memory(memories_dir: &Path, instance_name: &str, content: &str) -> String {
     fs::create_dir_all(memories_dir).ok();
