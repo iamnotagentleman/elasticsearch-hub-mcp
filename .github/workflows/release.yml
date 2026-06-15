@@ -1,0 +1,58 @@
+name: release
+
+# Triggered by pushing a version tag, e.g.:
+#   cargo set-version 0.1.2   (or edit Cargo.toml)
+#   git commit -am "v0.1.2" && git tag v0.1.2 && git push --tags
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write          # needed to create the GitHub Release + upload assets
+
+jobs:
+  # ----------------------------------------------------------------------
+  # 1. Publish the source package to crates.io  ->  `cargo install elasticsearch-hub-mcp`
+  # ----------------------------------------------------------------------
+  crates-io:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      # Fails loudly if the tag's version is already on crates.io — bump Cargo.toml first.
+      - run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  # ----------------------------------------------------------------------
+  # 2. Build prebuilt binaries per platform and attach them to the Release
+  # ----------------------------------------------------------------------
+  binaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-13          # Intel runner
+          - target: aarch64-apple-darwin
+            os: macos-latest       # Apple Silicon runner
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      # Builds (using `cross` automatically when the target != host, e.g. linux-arm64),
+      # packages a tar.gz/zip, generates a SHA256, and uploads to the Release for this tag.
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: elasticsearch-hub-mcp
+          target: ${{ matrix.target }}
+          archive: $bin-$tag-$target
+          checksum: sha256
+          token: ${{ secrets.GITHUB_TOKEN }}   # provided automatically by GitHub
