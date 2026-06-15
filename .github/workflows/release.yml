@@ -1,8 +1,8 @@
 name: release
 
 # Triggered by pushing a version tag, e.g.:
-#   cargo set-version 0.1.2   (or edit Cargo.toml)
-#   git commit -am "v0.1.2" && git tag v0.1.2 && git push --tags
+#   cargo set-version 0.1.3   (or edit Cargo.toml — must match the tag)
+#   git commit -am "v0.1.3" && git tag v0.1.3 && git push --tags
 on:
   push:
     tags:
@@ -13,20 +13,23 @@ permissions:
 
 jobs:
   # ----------------------------------------------------------------------
-  # 1. Publish the source package to crates.io  ->  `cargo install elasticsearch-hub-mcp`
+  # 1. Create the GitHub Release once, up front. Without this, the five
+  #    parallel matrix jobs below race to create it and report
+  #    "release not found".
   # ----------------------------------------------------------------------
-  crates-io:
+  create-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      # Fails loudly if the tag's version is already on crates.io — bump Cargo.toml first.
-      - run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - uses: taiki-e/create-gh-release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ----------------------------------------------------------------------
   # 2. Build prebuilt binaries per platform and attach them to the Release
   # ----------------------------------------------------------------------
   binaries:
+    needs: create-release
     strategy:
       fail-fast: false
       matrix:
@@ -56,3 +59,16 @@ jobs:
           archive: $bin-$tag-$target
           checksum: sha256
           token: ${{ secrets.GITHUB_TOKEN }}   # provided automatically by GitHub
+
+  # ----------------------------------------------------------------------
+  # 3. Publish the source package to crates.io  ->  `cargo install elasticsearch-hub-mcp`
+  #    Fails loudly if the tag's version is already on crates.io — bump Cargo.toml first.
+  # ----------------------------------------------------------------------
+  crates-io:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
