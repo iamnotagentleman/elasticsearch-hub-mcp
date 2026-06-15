@@ -553,7 +553,17 @@ impl ElasticsearchMcpServer {
 
         let mut req = client.request(http_method, &url);
         if let Some(ref body_val) = body {
-            req = req.json(body_val);
+            // MCP clients frequently send the body as a JSON-encoded string
+            // (e.g. "{\"query\":...}"). Sending that through .json() would
+            // double-encode it and ES rejects it with
+            // "Expected [START_OBJECT] but found [VALUE_STRING]".
+            let body_val = match body_val {
+                Value::String(s) => {
+                    serde_json::from_str::<Value>(s).unwrap_or_else(|_| body_val.clone())
+                }
+                other => other.clone(),
+            };
+            req = req.json(&body_val);
         }
 
         match req.send().await {
