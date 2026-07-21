@@ -19,6 +19,20 @@ Elastic's official [@elastic/mcp-server-elasticsearch](https://github.com/elasti
 
 Use the official MCP when you want a simple, opinionated interface to one cluster. Use this when you need multi-cluster access, raw Elasticsearch power, and an LLM that improves over time.
 
+## Design note: the `description` parameter
+
+`run_query` accepts an optional `description` parameter that is **intentionally
+ignored at execution time**. It exists purely as a reasoning trace: the LLM
+explains what the query does and why, which makes tool calls auditable and
+nudges the model to formulate queries more carefully before running them.
+
+I later discovered this design independently converges with
+[Think-Augmented Function Calling (TAFC)](https://arxiv.org/abs/2601.18282),
+which formalizes the same idea — augmenting function signatures with a
+no-op "think" parameter such that `f'(P, think) = f(P)` — and measures
+consistent accuracy gains on ToolBench, even for frontier models.
+
+
 ## Features
 
 - **Multiple instances** — configure as many ES clusters as you need, each with its own credentials and access rules
