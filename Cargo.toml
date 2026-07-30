@@ -1,6 +1,6 @@
 [package]
 name = "elasticsearch-hub-mcp"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 description = "MCP server for managing multiple Elasticsearch instances with raw Dev Tools-style query execution, per-instance memory, and shared docs"
 license = "MIT"
