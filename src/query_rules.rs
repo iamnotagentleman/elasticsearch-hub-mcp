@@ -89,6 +89,15 @@ pub fn is_read_allowed(method: &str, path: &str) -> bool {
     let clean = path.trim_start_matches('/').split('?').next().unwrap_or("");
     let segments: Vec<&str> = clean.split('/').filter(|s| !s.is_empty()).collect();
 
+    // Reject dot-segments outright. We classify the path as written, but reqwest's
+    // `url` crate resolves `.`/`..` per RFC 3986 *before* sending, so a path like
+    // `POST /_search/../idx/_doc/1` would look like a read here (action `_search`)
+    // yet reach ES as the write `/idx/_doc/1`. Legitimate ES paths never contain
+    // `.`/`..` segments, so refusing them closes that guard-vs-ES parse desync.
+    if segments.iter().any(|s| *s == "." || *s == "..") {
+        return false;
+    }
+
     // Find the action: first segment starting with `_`, skipping `_all` (that is
     // the "all indices" selector sitting in an index position, not an action —
     // e.g. `POST /_all/_search`).
@@ -347,6 +356,30 @@ mod tests {
         assert!(is_read_allowed("POST", "/_search/scroll"));
         // A `scroll` param on a non-search action is not a search read anyway.
         assert!(is_read_allowed("GET", "/my-index/_doc/123?scroll=5m"));
+    }
+
+    // ---- Path-traversal desync: reqwest's url crate resolves `..` before send ----
+
+    #[test]
+    fn test_dot_dot_traversal_blocked() {
+        // Guard used to see the read action prefix and allow these, but the `url`
+        // crate collapses `..` so ES receives a write. Must be blocked.
+        assert!(!is_read_allowed("POST", "/_search/../my-index/_doc/1"));
+        assert!(!is_read_allowed("POST", "/_msearch/../my-index/_delete_by_query"));
+        assert!(!is_read_allowed("POST", "/_count/../_bulk"));
+        assert!(!is_read_allowed("POST", "/_cat/../my-index/_doc/3"));
+        assert!(!is_read_allowed("GET", "/_search/../my-index/_refresh"));
+        // A single dot segment is just as illegitimate.
+        assert!(!is_read_allowed("POST", "/./my-index/_doc/1"));
+    }
+
+    #[test]
+    fn test_legit_paths_without_dot_segments_still_allowed() {
+        // The fix must not break normal paths — a doc id that merely contains dots
+        // is a single segment, not a dot-segment.
+        assert!(is_read_allowed("GET", "/my-index/_doc/1.2.3"));
+        assert!(is_read_allowed("GET", "/my-index/_doc/a..b"));
+        assert!(is_read_allowed("POST", "/app-logs-2026.04.01/_search"));
     }
 
     #[test]
